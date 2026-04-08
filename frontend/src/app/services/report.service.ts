@@ -15,6 +15,8 @@ interface CreateReportRequest {
   description?: string;
 }
 
+export type ReportRow = Record<string, unknown>;
+
 export interface ReportRun {
   id: number;
   reportId: number;
@@ -57,8 +59,8 @@ export class ReportService {
     return this.http.get<Report>(this.apiUrl + '/reports/' + id);
   }
   
-  executeReport(id: number): Observable<any[]> {
-    return this.http.post<any[]>(this.apiUrl + '/reports/' + id + '/execute', {});
+  executeReport(id: number): Observable<ReportRow[]> {
+    return this.http.post<ReportRow[]>(this.apiUrl + '/reports/' + id + '/execute', {});
   }
   
   generateReport(reportId: number, params: string): Observable<any> {

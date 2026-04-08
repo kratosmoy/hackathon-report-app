@@ -1,215 +1,407 @@
-<div class="report-container">
-  <h1>报表管理系统</h1>
-  
-  <!-- 简单登录区域 -->
-  <div class="section auth-section">
-    <h2>登录</h2>
-    <div *ngIf="authService.isLoggedIn(); else loginForm">
-      <p>当前用户：{{ authService.getCurrentUser()?.username }}</p>
-      <button (click)="logout()">退出登录</button>
+<div class="report-page">
+  <section class="workspace-hero">
+    <div class="workspace-hero__copy">
+      <p class="eyebrow">Report Approval Workspace</p>
+      <h1>{{ workspaceTitle }}</h1>
+      <p class="workspace-hero__description">{{ workspaceDescription }}</p>
+
+      <div class="workspace-hero__meta">
+        <span class="user-pill">{{ authService.getCurrentUser()?.username }}</span>
+        <span class="role-pill" *ngFor="let role of roleBadges">{{ role }}</span>
+      </div>
     </div>
-    <ng-template #loginForm>
-      <div class="login-form">
-        <label>
-          用户名：
-          <input [(ngModel)]="username" />
-        </label>
-        <label>
-          密码：
-          <input type="password" [(ngModel)]="password" />
-        </label>
-        <button (click)="login()" [disabled]="loggingIn">登录</button>
-        <div *ngIf="loginError" class="error">{{ loginError }}</div>
+
+    <div class="workspace-hero__actions">
+      <div class="workspace-nav">
+        <button type="button" class="nav-chip" [class.is-active]="isRoute('/reports')" (click)="navigateTo('/reports')">总览</button>
+        <button *ngIf="hasRole('MAKER')" type="button" class="nav-chip" [class.is-active]="isRoute('/maker')" (click)="navigateTo('/maker')">Maker</button>
+        <button *ngIf="hasRole('CHECKER')" type="button" class="nav-chip" [class.is-active]="isRoute('/checker')" (click)="navigateTo('/checker')">Checker</button>
       </div>
-    </ng-template>
-  </div>
-  
-  <div class="section" *ngIf="authService.getCurrentUser()?.role?.includes('MAKER')">
-    <h2>选择报表</h2>
-    <select (change)="selectReport($any($event).target.value)">
-      <option value="">-- 请选择报表 --</option>
-      <option *ngFor="let r of reports" [value]="r.id">
-        {{ getChineseReportName(r.name) }}
-      </option>
-    </select>
-    
-    <button (click)="runReport()">执行报表</button>
-    <button (click)="exportReport()" [disabled]="!selectedReport">下载报表 Excel</button>
-  </div>
 
-  <!-- Maker 视角：当前报表运行状态与提交审批 -->
-  <div *ngIf="authService.getCurrentUser()?.role?.includes('MAKER') && selectedReport && currentRun" class="section">
-    <h2>当前报表运行状态</h2>
-    <p>
-      报表：{{ getChineseReportName(selectedReport.name) }}
-      ｜ 状态：{{ currentRun.status }}
-      ｜ 生成时间：{{ currentRun.generatedAt | date:'yyyy-MM-dd HH:mm:ss' }}
-    </p>
-    <p *ngIf="currentRun.submittedAt">提交时间：{{ currentRun.submittedAt | date:'yyyy-MM-dd HH:mm:ss' }}</p>
-    <p *ngIf="currentRun.decidedAt">审批时间：{{ currentRun.decidedAt | date:'yyyy-MM-dd HH:mm:ss' }}</p>
-
-    <button *ngIf="currentRun.status === 'Generated'" (click)="submitCurrentRun()">
-      提交审批
-    </button>
-    <button (click)="exportCurrentRun()">下载本次运行 Excel</button>
-    <div *ngIf="submitMessage" class="info">{{ submitMessage }}</div>
-    <div *ngIf="submitError" class="error">{{ submitError }}</div>
-
-    <!-- 当前运行的审计轨迹 -->
-    <div class="audit-section">
-      <h3>审计轨迹</h3>
-      <div *ngIf="currentRunAuditError" class="error">{{ currentRunAuditError }}</div>
-      <div *ngIf="!currentRunAuditError && currentRunAudit.length === 0">
-        <p>暂无审计记录。</p>
+      <div class="action-row">
+        <button class="btn btn-secondary" type="button" (click)="refreshWorkbench()">刷新工作台</button>
+        <button class="btn btn-ghost" data-testid="workspace-logout" type="button" (click)="logout()">退出登录</button>
       </div>
-      <table *ngIf="currentRunAudit.length > 0">
+    </div>
+  </section>
+
+  <section class="insight-grid">
+    <article class="insight-card">
+      <span class="insight-card__label">可用报表</span>
+      <strong>{{ reports.length }}</strong>
+      <p>聚焦高可见度的报表执行与结果展示。</p>
+    </article>
+
+    <article class="insight-card">
+      <span class="insight-card__label">Maker 历史运行</span>
+      <strong>{{ makerRuns.length }}</strong>
+      <p>支持回看提交、审批和导出状态。</p>
+    </article>
+
+    <article class="insight-card">
+      <span class="insight-card__label">待审批队列</span>
+      <strong>{{ checkerRuns.length }}</strong>
+      <p>让 Checker 能快速锁定当前待办。</p>
+    </article>
+
+    <article class="insight-card">
+      <span class="insight-card__label">历史决策</span>
+      <strong>{{ checkerHistoryRuns.length }}</strong>
+      <p>保留审批结果与审计追踪入口。</p>
+    </article>
+  </section>
+
+  <div *ngIf="error" class="banner banner--danger">{{ error }}</div>
+  <div *ngIf="exportError" class="banner banner--danger">{{ exportError }}</div>
+
+  <section class="workspace-panel" *ngIf="hasRole('MAKER')">
+    <div class="section-heading">
+      <p class="eyebrow">Maker Workspace</p>
+      <h2>执行报表并发起审批</h2>
+      <p>选择报表、执行查询、查看本次运行状态，再把结果流转给 Checker。</p>
+    </div>
+
+    <div class="workspace-grid workspace-grid--two">
+      <article class="workspace-card">
+        <div class="card-heading">
+          <h3>报表执行台</h3>
+          <span class="soft-tag">{{ selectedReport ? '已选报表' : '等待选择' }}</span>
+        </div>
+
+        <label class="field">
+          <span>选择报表</span>
+          <select data-testid="maker-report-select" (change)="selectReport($any($event).target.value)">
+            <option value="">-- 请选择报表 --</option>
+            <option *ngFor="let report of reports" [value]="report.id">
+              {{ getChineseReportName(report.name) }}
+            </option>
+          </select>
+        </label>
+
+        <div *ngIf="selectedReport; else makerSelectionHint" class="report-focus">
+          <div class="report-focus__header">
+            <div>
+              <h3>{{ getChineseReportName(selectedReport.name) }}</h3>
+              <p>{{ getChineseReportDescription(selectedReport.name) }}</p>
+            </div>
+            <span class="status-pill" [attr.data-tone]="getStatusTone(currentRun?.status)">
+              {{ currentRun ? getStatusLabel(currentRun.status) : '待执行' }}
+            </span>
+          </div>
+
+          <div class="action-row">
+            <button class="btn btn-primary" data-testid="maker-run-report-button" type="button" (click)="runReport()" [disabled]="loading">
+              {{ loading ? '执行中...' : '执行报表' }}
+            </button>
+            <button class="btn btn-secondary" type="button" (click)="exportReport()" [disabled]="!selectedReport">下载报表 Excel</button>
+          </div>
+
+          <div class="code-block">
+            <p class="code-block__label">SQL 预览</p>
+            <pre class="sql-preview">{{ selectedReport.sql }}</pre>
+          </div>
+        </div>
+
+        <ng-template #makerSelectionHint>
+          <div class="empty-state">
+            <h3>先选择一个报表</h3>
+            <p>选中后会展示中文说明、SQL 预览和当前运行状态，便于现场讲解。</p>
+          </div>
+        </ng-template>
+      </article>
+
+      <article class="workspace-card" *ngIf="selectedReport; else noSelectedReportPanel">
+        <div class="card-heading">
+          <h3>当前运行状态</h3>
+          <span class="soft-tag">{{ currentRun ? '已同步最新运行' : '暂无运行实例' }}</span>
+        </div>
+
+        <div *ngIf="currentRun; else currentRunHint" class="stack">
+          <p data-testid="current-run-status" class="run-status-line">
+            报表：{{ getChineseReportName(selectedReport.name) }}
+            ｜ 状态：{{ getStatusLabel(currentRun.status) }}
+            ｜ 生成时间：{{ currentRun.generatedAt | date:'yyyy-MM-dd HH:mm:ss' }}
+          </p>
+
+          <div class="meta-grid">
+            <div class="meta-card">
+              <span>生成时间</span>
+              <strong>{{ currentRun.generatedAt | date:'MM-dd HH:mm:ss' }}</strong>
+            </div>
+            <div class="meta-card">
+              <span>提交时间</span>
+              <strong>{{ currentRun.submittedAt ? (currentRun.submittedAt | date:'MM-dd HH:mm:ss') : '-' }}</strong>
+            </div>
+            <div class="meta-card">
+              <span>审批时间</span>
+              <strong>{{ currentRun.decidedAt ? (currentRun.decidedAt | date:'MM-dd HH:mm:ss') : '-' }}</strong>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button
+              class="btn btn-primary"
+              data-testid="maker-submit-approval-button"
+              type="button"
+              *ngIf="currentRun.status === 'Generated'"
+              (click)="submitCurrentRun()">
+              提交审批
+            </button>
+            <button class="btn btn-secondary" type="button" (click)="exportCurrentRun()">下载本次运行 Excel</button>
+            <button class="btn btn-ghost" type="button" (click)="viewRunFlow(currentRun.id)">查看完整审批流程</button>
+          </div>
+
+          <div data-testid="maker-submit-message" *ngIf="submitMessage" class="banner banner--success">{{ submitMessage }}</div>
+          <div *ngIf="submitError" class="banner banner--danger">{{ submitError }}</div>
+
+          <div class="sub-card">
+            <div class="card-heading">
+              <h4>审计轨迹</h4>
+              <span class="soft-tag">{{ currentRunAudit.length }} 条事件</span>
+            </div>
+
+            <div *ngIf="currentRunAuditError" class="banner banner--danger">{{ currentRunAuditError }}</div>
+
+            <div *ngIf="!currentRunAuditError && currentRunAudit.length === 0" class="empty-state empty-state--compact">
+              <p>当前运行还没有审计记录。</p>
+            </div>
+
+            <table data-testid="current-run-audit-table" *ngIf="currentRunAudit.length > 0">
+              <thead>
+                <tr>
+                  <th>时间</th>
+                  <th>事件</th>
+                  <th>用户</th>
+                  <th>角色</th>
+                  <th>备注</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let event of currentRunAudit">
+                  <td>{{ event.eventTime | date:'yyyy-MM-dd HH:mm:ss' }}</td>
+                  <td>{{ event.eventType }}</td>
+                  <td>{{ event.actorUsername }}</td>
+                  <td>{{ event.actorRole || '-' }}</td>
+                  <td>{{ event.comment || '-' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <ng-template #currentRunHint>
+          <div class="empty-state">
+            <h3>还没有运行实例</h3>
+            <p>执行报表后，这里会展示最近一次生成、提交和审批的状态。</p>
+          </div>
+        </ng-template>
+      </article>
+
+      <ng-template #noSelectedReportPanel>
+        <article class="workspace-card">
+          <div class="empty-state">
+            <h3>运行状态面板待激活</h3>
+            <p>先在左侧选择一个报表，就能查看该报表最近一次运行的审批流转情况。</p>
+          </div>
+        </article>
+      </ng-template>
+    </div>
+  </section>
+
+  <section class="workspace-panel" *ngIf="selectedReport">
+    <div class="section-heading">
+      <p class="eyebrow">Result Preview</p>
+      <h2>报表结果预览</h2>
+      <p>执行完成后，在这里直接查看返回数据，便于 demo 时快速切换结果与流程讲解。</p>
+    </div>
+
+    <article class="workspace-card">
+      <div *ngIf="loading" class="empty-state">
+        <h3>正在执行报表</h3>
+        <p>系统正在准备结果集，请稍候。</p>
+      </div>
+
+      <div *ngIf="reportData && reportData.data.length > 0" class="stack">
+        <div class="card-heading">
+          <h3>查询结果</h3>
+          <span class="soft-tag">{{ reportData.count || reportData.data.length }} 条记录</span>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th *ngFor="let key of getKeys(reportData.data)">{{ key }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of reportData.data">
+              <td *ngFor="let key of getKeys(reportData.data)">{{ row[key] }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div *ngIf="reportData && reportData.data.length === 0" class="empty-state empty-state--warning">
+        <h3>空查询结果</h3>
+        <p>报表已执行，但当前条件下没有返回任何数据。</p>
+      </div>
+
+      <div *ngIf="!loading && !reportData" class="empty-state empty-state--compact">
+        <p>执行报表后，这里会展示结果表格。</p>
+      </div>
+    </article>
+  </section>
+
+  <section class="workspace-panel" *ngIf="hasRole('MAKER')">
+    <div class="section-heading">
+      <p class="eyebrow">Maker History</p>
+      <h2>我的提交历史</h2>
+      <p>记录每次运行的生成、提交与审批结果，让导出与回看流程更直接。</p>
+    </div>
+
+    <article class="workspace-card">
+      <div class="card-heading">
+        <h3>历史记录</h3>
+        <button class="btn btn-secondary" data-testid="maker-history-refresh" type="button" (click)="loadMakerRuns()">刷新</button>
+      </div>
+
+      <div *ngIf="makerRunsError" class="banner banner--danger">{{ makerRunsError }}</div>
+
+      <div *ngIf="!makerRunsError && makerRuns.length === 0" class="empty-state empty-state--compact">
+        <p>当前还没有任何报表运行记录。</p>
+      </div>
+
+      <table data-testid="maker-history-table" *ngIf="makerRuns.length > 0">
         <thead>
           <tr>
-            <th>时间</th>
-            <th>事件</th>
-            <th>用户</th>
-            <th>角色</th>
-            <th>备注</th>
+            <th>运行 ID</th>
+            <th>报表</th>
+            <th>状态</th>
+            <th>生成时间</th>
+            <th>提交时间</th>
+            <th>审批时间</th>
+            <th>操作</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let e of currentRunAudit">
-            <td>{{ e.eventTime | date:'yyyy-MM-dd HH:mm:ss' }}</td>
-            <td>{{ e.eventType }}</td>
-            <td>{{ e.actorUsername }}</td>
-            <td>{{ e.actorRole }}</td>
-            <td>{{ e.comment }}</td>
+          <tr *ngFor="let run of makerRuns">
+            <td>#{{ run.id }}</td>
+            <td>{{ run.reportName }}</td>
+            <td>
+              <span class="status-pill" [attr.data-tone]="getStatusTone(run.status)">{{ getStatusLabel(run.status) }}</span>
+            </td>
+            <td>{{ run.generatedAt | date:'yyyy-MM-dd HH:mm:ss' }}</td>
+            <td>{{ run.submittedAt ? (run.submittedAt | date:'yyyy-MM-dd HH:mm:ss') : '-' }}</td>
+            <td>{{ run.decidedAt ? (run.decidedAt | date:'yyyy-MM-dd HH:mm:ss') : '-' }}</td>
+            <td class="table-actions">
+              <button *ngIf="run.status === 'Approved'" class="btn btn-secondary" type="button" (click)="exportRun(run)">下载 Excel</button>
+              <button class="btn btn-ghost" type="button" (click)="viewRunFlow(run.id)">查看流程</button>
+            </td>
           </tr>
         </tbody>
       </table>
-      <button (click)="viewRunFlow(currentRun.id)">查看完整审批流程</button>
-    </div>
-  </div>
+    </article>
+  </section>
 
-  <!-- Maker 视角：我的提交历史 -->
-  <div class="section" *ngIf="authService.getCurrentUser()?.role?.includes('MAKER')">
-    <h2>我的提交历史</h2>
-    <button (click)="loadMakerRuns()">刷新</button>
-    <div *ngIf="makerRunsError" class="error">{{ makerRunsError }}</div>
-
-    <div *ngIf="!makerRunsError && makerRuns.length === 0">
-      <p>当前还没有任何报表运行记录。</p>
+  <section class="workspace-panel" *ngIf="hasRole('CHECKER')">
+    <div class="section-heading">
+      <p class="eyebrow">Checker Workspace</p>
+      <h2>处理待审批队列</h2>
+      <p>把待办列表、审批详情、审计轨迹和决策动作聚合到一个区域，适合高密度演示。</p>
     </div>
 
-    <table *ngIf="makerRuns.length > 0">
-      <thead>
-        <tr>
-          <th>运行ID</th>
-          <th>报表</th>
-          <th>状态</th>
-          <th>生成时间</th>
-          <th>提交时间</th>
-          <th>审批时间</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let r of makerRuns">
-          <td>#{{ r.id }}</td>
-          <td>{{ r.reportName }}</td>
-          <td>{{ r.status }}</td>
-          <td>{{ r.generatedAt | date:'yyyy-MM-dd HH:mm:ss' }}</td>
-          <td>{{ r.submittedAt ? (r.submittedAt | date:'yyyy-MM-dd HH:mm:ss') : '-' }}</td>
-          <td>{{ r.decidedAt ? (r.decidedAt | date:'yyyy-MM-dd HH:mm:ss') : '-' }}</td>
-          <td>
-            <button *ngIf="r.status === 'Approved'" (click)="exportRun(r)">下载 Excel</button>
-            <button (click)="viewRunFlow(r.id)">查看流程</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  
-  <div *ngIf="loading">加载中...</div>
-  
-  <div *ngIf="error" class="error">{{ error }}</div>
-  <div *ngIf="exportError" class="error">{{ exportError }}</div>
-  
-  <div *ngIf="selectedReport" class="report-desc">
-    <h3>报表描述</h3>
-    <p>{{ getChineseReportDescription(selectedReport.name) }}</p>
-    <p class="sql-preview">{{ selectedReport.sql }}</p>
-  </div>
-  
-  <!-- Report data display -->
-  <div *ngIf="reportData && reportData.data" class="result">
-    <h3>查询结果 ({{ reportData.count || reportData.data.length }} 条记录)</h3>
-    
-    <table>
-      <thead>
-        <tr>
-          <th *ngFor="let key of getKeys(reportData.data)">{{ key }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let row of reportData.data">
-          <td *ngFor="let key of getKeys(reportData.data)">{{ row[key] }}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  
-  <!-- If no data but reportData exists -->
-  <div *ngIf="reportData && (!reportData.data || reportData.data.length === 0)" class="result" style="background: #fff3cd; padding: 10px;">
-    <h3>空查询结果</h3>
-    <p>报表已执行但未返回数据</p>
-  </div>
+    <div class="workspace-grid workspace-grid--two">
+      <article class="workspace-card">
+        <div class="card-heading">
+          <h3>待审批列表</h3>
+          <button class="btn btn-secondary" data-testid="checker-refresh-list" type="button" (click)="loadCheckerRuns()">刷新列表</button>
+        </div>
 
-  <!-- Checker 视角：待审批报表列表和审批操作 -->
-  <div class="section" *ngIf="authService.isLoggedIn() && authService.getCurrentUser()?.role?.includes('CHECKER')">
-    <h2>待审批报表</h2>
-    <button (click)="loadCheckerRuns()">刷新列表</button>
-    <div *ngIf="checkerError" class="error">{{ checkerError }}</div>
-    <div *ngIf="checkerMessage" class="info">{{ checkerMessage }}</div>
+        <div *ngIf="checkerError" class="banner banner--danger">{{ checkerError }}</div>
+        <div data-testid="checker-message" *ngIf="checkerMessage" class="banner banner--success">{{ checkerMessage }}</div>
 
-    <div *ngIf="checkerRuns.length === 0">
-      <p>当前没有待审批的报表。</p>
-    </div>
+        <div *ngIf="checkerRuns.length === 0" class="empty-state empty-state--compact">
+          <p>当前没有待审批的报表。</p>
+        </div>
 
-    <div *ngIf="checkerRuns.length > 0" class="checker-section">
-      <div class="checker-list">
-        <h3>待审批列表</h3>
-        <select (change)="selectCheckerRun($any($event).target.value)">
-          <option *ngFor="let r of checkerRuns" [value]="r.id">
-            #{{ r.id }} ｜ {{ r.reportName }} ｜ Maker: {{ r.makerUsername }} ｜ 提交时间：{{ r.submittedAt | date:'MM-dd HH:mm' }}
-          </option>
-        </select>
-      </div>
+        <div *ngIf="checkerRuns.length > 0" class="stack">
+          <label class="field">
+            <span>选择运行实例</span>
+            <select data-testid="checker-run-select" (change)="selectCheckerRun($any($event).target.value)">
+              <option *ngFor="let run of checkerRuns" [value]="run.id">
+                #{{ run.id }} ｜ {{ run.reportName }} ｜ Maker: {{ run.makerUsername }} ｜ 提交时间：{{ run.submittedAt | date:'MM-dd HH:mm' }}
+              </option>
+            </select>
+          </label>
 
-      <div class="checker-detail" *ngIf="selectedCheckerRun">
-        <h3>审批详情</h3>
-        <p>报表：{{ selectedCheckerRun.reportName }}</p>
-        <p>Maker：{{ selectedCheckerRun.makerUsername }}</p>
-        <p>生成时间：{{ selectedCheckerRun.generatedAt | date:'yyyy-MM-dd HH:mm:ss' }}</p>
-        <p>提交时间：{{ selectedCheckerRun.submittedAt | date:'yyyy-MM-dd HH:mm:ss' }}</p>
+          <div class="queue-list">
+            <button
+              *ngFor="let run of checkerRuns"
+              type="button"
+              class="queue-item"
+              [class.is-active]="selectedCheckerRun?.id === run.id"
+              (click)="selectCheckerRun(run.id.toString())">
+              <strong>#{{ run.id }} {{ run.reportName }}</strong>
+              <span>Maker：{{ run.makerUsername }}</span>
+              <small>{{ run.submittedAt | date:'yyyy-MM-dd HH:mm:ss' }}</small>
+            </button>
+          </div>
+        </div>
+      </article>
 
-        <label>
-          决策：
-          <select [(ngModel)]="checkerDecision">
+      <article class="workspace-card" *ngIf="selectedCheckerRun; else checkerHint">
+        <div class="card-heading">
+          <h3>审批详情</h3>
+          <span class="status-pill" [attr.data-tone]="getStatusTone(selectedCheckerRun.status)">
+            {{ getStatusLabel(selectedCheckerRun.status) }}
+          </span>
+        </div>
+
+        <div class="meta-grid">
+          <div class="meta-card">
+            <span>报表</span>
+            <strong>{{ selectedCheckerRun.reportName }}</strong>
+          </div>
+          <div class="meta-card">
+            <span>Maker</span>
+            <strong>{{ selectedCheckerRun.makerUsername }}</strong>
+          </div>
+          <div class="meta-card">
+            <span>提交时间</span>
+            <strong>{{ selectedCheckerRun.submittedAt | date:'MM-dd HH:mm:ss' }}</strong>
+          </div>
+        </div>
+
+        <label class="field">
+          <span>决策</span>
+          <select data-testid="checker-decision-select" [(ngModel)]="checkerDecision">
             <option value="APPROVED">批准</option>
             <option value="REJECTED">拒绝</option>
           </select>
         </label>
 
-        <label>
-          意见：
-          <textarea [(ngModel)]="checkerComment" rows="3"></textarea>
+        <label class="field">
+          <span>意见</span>
+          <textarea data-testid="checker-comment-input" [(ngModel)]="checkerComment" rows="4" placeholder="可填写审批意见或驳回原因"></textarea>
         </label>
 
-        <button (click)="decideSelectedRun()">提交审批结果</button>
+        <div class="action-row">
+          <button class="btn btn-primary" data-testid="checker-submit-decision-button" type="button" (click)="decideSelectedRun()">提交审批结果</button>
+          <button class="btn btn-ghost" type="button" (click)="viewRunFlow(selectedCheckerRun.id)">查看完整审批流程</button>
+        </div>
 
-        <!-- 被选中运行的审计轨迹 -->
-        <div class="audit-section">
-          <h3>该报表运行的审计轨迹</h3>
-          <div *ngIf="checkerAuditError" class="error">{{ checkerAuditError }}</div>
-          <div *ngIf="!checkerAuditError && checkerAudit.length === 0">
-            <p>暂无审计记录。</p>
+        <div class="sub-card">
+          <div class="card-heading">
+            <h4>审计轨迹</h4>
+            <span class="soft-tag">{{ checkerAudit.length }} 条事件</span>
           </div>
+
+          <div *ngIf="checkerAuditError" class="banner banner--danger">{{ checkerAuditError }}</div>
+
+          <div *ngIf="!checkerAuditError && checkerAudit.length === 0" class="empty-state empty-state--compact">
+            <p>该运行暂时没有审计记录。</p>
+          </div>
+
           <table *ngIf="checkerAudit.length > 0">
             <thead>
               <tr>
@@ -221,61 +413,81 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let e of checkerAudit">
-                <td>{{ e.eventTime | date:'yyyy-MM-dd HH:mm:ss' }}</td>
-                <td>{{ e.eventType }}</td>
-                <td>{{ e.actorUsername }}</td>
-                <td>{{ e.actorRole }}</td>
-                <td>{{ e.comment }}</td>
+              <tr *ngFor="let event of checkerAudit">
+                <td>{{ event.eventTime | date:'yyyy-MM-dd HH:mm:ss' }}</td>
+                <td>{{ event.eventType }}</td>
+                <td>{{ event.actorUsername }}</td>
+                <td>{{ event.actorRole || '-' }}</td>
+                <td>{{ event.comment || '-' }}</td>
               </tr>
             </tbody>
           </table>
-          <button (click)="viewRunFlow(selectedCheckerRun.id)">查看完整审批流程</button>
         </div>
+      </article>
+
+      <ng-template #checkerHint>
+        <article class="workspace-card">
+          <div class="empty-state">
+            <h3>选择一个待审批运行</h3>
+            <p>右侧会展示审批详情、意见输入和对应的审计轨迹。</p>
+          </div>
+        </article>
+      </ng-template>
+    </div>
+  </section>
+
+  <section class="workspace-panel" *ngIf="hasRole('CHECKER')">
+    <div class="section-heading">
+      <p class="eyebrow">Checker History</p>
+      <h2>历史审批记录</h2>
+      <p>保留审批闭环信息，方便展示通过、驳回及导出能力的完整链路。</p>
+    </div>
+
+    <article class="workspace-card">
+      <div class="card-heading">
+        <h3>历史记录</h3>
+        <button class="btn btn-secondary" data-testid="checker-history-refresh" type="button" (click)="loadCheckerHistory()">刷新</button>
       </div>
-    </div>
-  </div>
 
-  <!-- Checker 视角：历史审批记录 -->
-  <div class="section" *ngIf="authService.isLoggedIn() && authService.getCurrentUser()?.role?.includes('CHECKER')">
-    <h2>历史审批记录</h2>
-    <button (click)="loadCheckerHistory()">刷新</button>
-    <div *ngIf="checkerHistoryError" class="error">{{ checkerHistoryError }}</div>
+      <div *ngIf="checkerHistoryError" class="banner banner--danger">{{ checkerHistoryError }}</div>
 
-    <div *ngIf="!checkerHistoryError && checkerHistoryRuns.length === 0">
-      <p>当前还没有任何历史审批记录。</p>
-    </div>
+      <div *ngIf="!checkerHistoryError && checkerHistoryRuns.length === 0" class="empty-state empty-state--compact">
+        <p>当前还没有任何历史审批记录。</p>
+      </div>
 
-    <table *ngIf="checkerHistoryRuns.length > 0">
-      <thead>
-        <tr>
-          <th>运行ID</th>
-          <th>报表</th>
-          <th>Maker</th>
-          <th>Checker</th>
-          <th>状态</th>
-          <th>生成时间</th>
-          <th>提交时间</th>
-          <th>审批时间</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let r of checkerHistoryRuns">
-          <td>#{{ r.id }}</td>
-          <td>{{ r.reportName }}</td>
-          <td>{{ r.makerUsername }}</td>
-          <td>{{ r.checkerUsername }}</td>
-          <td>{{ r.status }}</td>
-          <td>{{ r.generatedAt | date:'yyyy-MM-dd HH:mm:ss' }}</td>
-          <td>{{ r.submittedAt ? (r.submittedAt | date:'yyyy-MM-dd HH:mm:ss') : '-' }}</td>
-          <td>{{ r.decidedAt ? (r.decidedAt | date:'yyyy-MM-dd HH:mm:ss') : '-' }}</td>
-          <td>
-            <button *ngIf="r.status === 'Approved'" (click)="exportRun(r)">下载 Excel</button>
-            <button (click)="viewRunFlow(r.id)">查看流程</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+      <table data-testid="checker-history-table" *ngIf="checkerHistoryRuns.length > 0">
+        <thead>
+          <tr>
+            <th>运行 ID</th>
+            <th>报表</th>
+            <th>Maker</th>
+            <th>Checker</th>
+            <th>状态</th>
+            <th>生成时间</th>
+            <th>提交时间</th>
+            <th>审批时间</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let run of checkerHistoryRuns">
+            <td>#{{ run.id }}</td>
+            <td>{{ run.reportName }}</td>
+            <td>{{ run.makerUsername }}</td>
+            <td>{{ run.checkerUsername || '-' }}</td>
+            <td>
+              <span class="status-pill" [attr.data-tone]="getStatusTone(run.status)">{{ getStatusLabel(run.status) }}</span>
+            </td>
+            <td>{{ run.generatedAt | date:'yyyy-MM-dd HH:mm:ss' }}</td>
+            <td>{{ run.submittedAt ? (run.submittedAt | date:'yyyy-MM-dd HH:mm:ss') : '-' }}</td>
+            <td>{{ run.decidedAt ? (run.decidedAt | date:'yyyy-MM-dd HH:mm:ss') : '-' }}</td>
+            <td class="table-actions">
+              <button *ngIf="run.status === 'Approved'" class="btn btn-secondary" type="button" (click)="exportRun(run)">下载 Excel</button>
+              <button class="btn btn-ghost" type="button" (click)="viewRunFlow(run.id)">查看流程</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </article>
+  </section>
 </div>

@@ -40,6 +40,21 @@ public class ReportDao {
         String sql = "INSERT INTO report_config (name, sql, description) VALUES (?, ?, ?)";
         jdbc.update(sql, report.getName(), report.getSql(), report.getDescription());
     }
+
+    public List<Map<String, Object>> fetchCustomerTransactionAnalysisRows() {
+        String sql = """
+                SELECT c.id AS customer_id,
+                       c.name,
+                       c.type,
+                       c.credit_score,
+                       t.amount,
+                       t.status
+                FROM customer c
+                LEFT JOIN transaction t ON c.id = t.customer_id
+                WHERE t.id IS NOT NULL
+                """;
+        return jdbc.queryForList(sql);
+    }
     
     // update 和 delete 都没有
     

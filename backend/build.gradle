@@ -15,6 +15,33 @@ repositories {
     mavenCentral()
 }
 
+def isWindows = System.getProperty('os.name').toLowerCase().contains('windows')
+def npmCommand = isWindows ? 'npm.cmd' : 'npm'
+def frontendDir = file("${projectDir}/../frontend")
+
+sourceSets {
+    e2eTest {
+        java.srcDir file('src/e2eTest/java')
+        resources.srcDir file('src/e2eTest/resources')
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += output + compileClasspath
+    }
+}
+
+configurations {
+    e2eTestImplementation.extendsFrom testImplementation
+    e2eTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
+configurations.configureEach {
+    if (name.startsWith('e2eTest')) {
+        resolutionStrategy.force(
+                'net.bytebuddy:byte-buddy:1.15.11',
+                'net.bytebuddy:byte-buddy-agent:1.15.11'
+        )
+    }
+}
+
 ext {
     jjwtVersion = '0.11.5'
     jxlsVersion = '2.14.0'
@@ -38,6 +65,25 @@ dependencies {
     implementation "org.jxls:jxls-poi:${jxlsVersion}"
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    e2eTestImplementation 'com.microsoft.playwright:playwright:1.52.0'
+    e2eTestImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+tasks.register('frontendBuildForE2E', Exec) {
+    workingDir frontendDir
+    commandLine npmCommand, 'run', 'build'
+}
+
+tasks.register('e2eTest', Test) {
+    description = 'Runs Java Playwright end-to-end tests.'
+    group = 'verification'
+    testClassesDirs = sourceSets.e2eTest.output.classesDirs
+    classpath = sourceSets.e2eTest.runtimeClasspath
+    useJUnitPlatform()
+    dependsOn tasks.named('frontendBuildForE2E')
+    shouldRunAfter tasks.named('test')
+    systemProperty 'e2e.headless', System.getProperty('e2e.headless', 'true')
 }
 
 tasks.named('test') {

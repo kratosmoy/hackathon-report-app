@@ -13,6 +13,9 @@ public class ReportService {
     
     @Autowired
     private ReportDao reportDao;
+
+    @Autowired
+    private CustomerTransactionAnalysisService customerTransactionAnalysisService;
     
     // 业务逻辑全部堆在这里，一个方法几百行
     public List<Report> getAllReports() {
@@ -26,6 +29,18 @@ public class ReportService {
     // 直接执行SQL，没有任何校验，这是严重的安全漏洞
     public List<Map<String, Object>> runReport(String sql) {
         return reportDao.executeSql(sql);
+    }
+
+    public List<Map<String, Object>> executeReportDefinition(Report report) {
+        if (report == null) {
+            throw new RuntimeException("报表不存在");
+        }
+
+        if (isCustomerTransactionAnalysis(report)) {
+            return customerTransactionAnalysisService.analyze(reportDao.fetchCustomerTransactionAnalysisRows());
+        }
+
+        return reportDao.executeSql(report.getSql());
     }
     
     // 没有参数校验，没有异常处理
@@ -63,5 +78,9 @@ public class ReportService {
             "data", data,
             "count", data.size()
         );
+    }
+
+    private boolean isCustomerTransactionAnalysis(Report report) {
+        return "Customer Transaction Analysis".equals(report.getName());
     }
 }

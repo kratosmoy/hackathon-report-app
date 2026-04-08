@@ -1,0 +1,78 @@
+<div class="login-page">
+  <section class="login-shell">
+    <div class="login-showcase">
+      <p class="eyebrow">Report Approval Workspace</p>
+      <h1>报表审批系统入口</h1>
+      <p class="login-showcase__lead">
+        登录后可直接进入报表执行、审批协作、审计追踪与 Excel 导出等核心业务流程。
+      </p>
+
+      <div class="login-showcase__chips">
+        <span class="feature-chip">Angular Standalone</span>
+        <span class="feature-chip">Maker / Checker Flow</span>
+        <span class="feature-chip">Audit Timeline</span>
+      </div>
+    </div>
+
+    <div class="login-panel">
+      <div class="login-panel__header">
+        <p class="eyebrow">Secure Access</p>
+        <h2>登录到工作台</h2>
+        <p>支持本地 demo 账号快速切换，方便现场演示不同角色视角。</p>
+      </div>
+
+      <div *ngIf="authService.isLoggedIn(); else loginForm" class="session-card">
+        <p class="session-card__label">当前已登录</p>
+        <h3>{{ authService.getCurrentUser()?.username }}</h3>
+        <p>可以直接进入系统，或者清空当前会话重新选择一个演示账号。</p>
+        <div class="action-row">
+          <button class="btn btn-primary" data-testid="login-continue" (click)="goAfterLogin()">进入系统</button>
+          <button class="btn btn-ghost" type="button" (click)="switchAccount()">切换账号</button>
+        </div>
+      </div>
+
+      <ng-template #loginForm>
+        <div class="demo-account-grid">
+          <button
+            *ngFor="let account of demoAccounts"
+            type="button"
+            class="demo-account-card"
+            (click)="useDemoAccount(account)">
+            <strong>{{ account.username }}</strong>
+            <span>{{ account.roleLabel }}</span>
+            <small>{{ account.description }}</small>
+          </button>
+        </div>
+
+        <form (ngSubmit)="onSubmit()" class="login-form">
+          <label class="field">
+            <span>用户名</span>
+            <input
+              data-testid="login-username"
+              [(ngModel)]="username"
+              name="username"
+              placeholder="选择 demo 账号或手动输入"
+              required />
+          </label>
+
+          <label class="field">
+            <span>密码</span>
+            <input
+              data-testid="login-password"
+              type="password"
+              [(ngModel)]="password"
+              name="password"
+              placeholder="默认密码见上方卡片"
+              required />
+          </label>
+
+          <button class="btn btn-primary btn-block" data-testid="login-submit" type="submit" [disabled]="loggingIn">
+            {{ loggingIn ? '登录中...' : '登录并进入工作台' }}
+          </button>
+
+          <div *ngIf="loginError" class="banner banner--danger">{{ loginError }}</div>
+        </form>
+      </ng-template>
+    </div>
+  </section>
+</div>

@@ -1,0 +1,10 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": "D:\\projects\\hackathon-report-app\\.trellis\\spec\\frontend\\component-guidelines.md", "reason": "Frontend template changes must stay aligned with standalone Angular component patterns."}
+{"file": "D:\\projects\\hackathon-report-app\\.trellis\\spec\\frontend\\quality-guidelines.md", "reason": "Frontend testability changes must keep auth and report flows explicit and visible."}
+{"file": "D:\\projects\\hackathon-report-app\\.trellis\\spec\\backend\\quality-guidelines.md", "reason": "Backend E2E harness changes should stay layered and improve test coverage without expanding legacy patterns."}
+{"file": "D:\\projects\\hackathon-report-app\\.trellis\\spec\\backend\\logging-guidelines.md", "reason": "Any new backend-side diagnostics should use structured logging and avoid console prints."}
+{"file": "D:\\projects\\hackathon-report-app\\.trellis\\spec\\guides\\cross-layer-thinking-guide.md", "reason": "This work spans frontend selectors, backend task wiring, and browser automation contracts."}
+{"file": "D:\\projects\\hackathon-report-app\\backend\\src\\e2eTest\\java\\com\\legacy\\report\\e2e\\support\\BasePlaywrightE2ETest.java", "reason": "Follow the existing Playwright Java harness and lifecycle pattern."}
+{"file": "D:\\projects\\hackathon-report-app\\frontend\\src\\app\\components\\report\\report-viewer.component.html", "reason": "Follow the existing maker/checker UI structure when adding stable selectors."}

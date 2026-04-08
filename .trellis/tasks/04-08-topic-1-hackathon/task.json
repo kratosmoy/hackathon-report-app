@@ -1,0 +1,51 @@
+{
+  "id": "04-08-topic-1-hackathon",
+  "name": "Topic 1 Hackathon Delivery",
+  "description": "Deliver README Topic 1 with balanced frontend, backend, workflow, and demo outputs",
+  "status": "pending",
+  "dev_type": "fullstack",
+  "priority": "P1",
+  "creator": "kratos",
+  "assignee": "kratos",
+  "createdAt": "2026-04-08",
+  "completedAt": null,
+  "commit": null,
+  "subtasks": [
+    {
+      "name": "Frontend beautification workstream",
+      "status": "pending"
+    },
+    {
+      "name": "Backend SQL migration workstream",
+      "status": "pending"
+    },
+    {
+      "name": "AI workflow showcase workstream",
+      "status": "pending"
+    },
+    {
+      "name": "Final demo packaging workstream",
+      "status": "pending"
+    }
+  ],
+  "children": [
+    "04-08-frontend-beautification",
+    "04-08-backend-sql-migration",
+    "04-08-ai-workflow-showcase",
+    "04-08-final-demo-packaging"
+  ],
+  "parent": null,
+  "relatedFiles": [
+    "README.md",
+    "frontend/",
+    "backend/",
+    ".trellis/spec/",
+    "AGENTS.md"
+  ],
+  "notes": "Umbrella task for README Topic 1 hackathon execution. Focus on representative improvements, not exhaustive refactors.",
+  "meta": {
+    "topic": "README Topic 1",
+    "scope": "hackathon",
+    "recommendedStrategy": "balanced-depth"
+  }
+}

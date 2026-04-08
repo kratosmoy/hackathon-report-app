@@ -86,7 +86,7 @@ public class ReportRunService {
         logger.info("event=report_run_execute_start reportId={} maker={}", reportId, currentUser.getUsername());
 
         // 先执行报表，保持原有行为
-        List<Map<String, Object>> data = reportService.runReport(report.getSql());
+        List<Map<String, Object>> data = reportService.executeReportDefinition(report);
 
         // 创建 ReportRun 记录
         ReportRun run = new ReportRun();

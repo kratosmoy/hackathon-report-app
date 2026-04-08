@@ -1,0 +1,45 @@
+{
+  "id": "04-08-final-demo-packaging",
+  "name": "Final Demo Packaging",
+  "description": "Assemble the final demo flow, script, and fallback material for Topic 1",
+  "status": "pending",
+  "dev_type": "fullstack",
+  "priority": "P1",
+  "creator": "kratos",
+  "assignee": "kratos",
+  "createdAt": "2026-04-08",
+  "completedAt": null,
+  "commit": null,
+  "subtasks": [
+    {
+      "name": "Rehearse end-to-end happy path",
+      "status": "pending"
+    },
+    {
+      "name": "Write final demo script",
+      "status": "pending"
+    },
+    {
+      "name": "Prepare fallback demo material",
+      "status": "pending"
+    }
+  ],
+  "children": [],
+  "parent": "04-08-topic-1-hackathon",
+  "relatedFiles": [
+    "frontend/",
+    "backend/",
+    "README.md",
+    ".trellis/tasks/"
+  ],
+  "notes": "This workstream turns the technical outputs into a hackathon-ready demonstration.",
+  "meta": {
+    "workstream": "demo",
+    "dependsOn": [
+      "04-08-frontend-beautification",
+      "04-08-backend-sql-migration",
+      "04-08-ai-workflow-showcase"
+    ],
+    "showcasePriority": "high"
+  }
+}

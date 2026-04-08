@@ -60,7 +60,7 @@ public class ReportExcelExportService {
             throw new ReportExportException("报表不存在");
         }
 
-        List<Map<String, Object>> data = reportService.runReport(report.getSql());
+        List<Map<String, Object>> data = reportService.executeReportDefinition(report);
 
         Map<String, Object> meta = new HashMap<>();
         meta.put("reportId", report.getId());
@@ -99,10 +99,10 @@ public class ReportExcelExportService {
                 data = objectMapper.readValue(run.getResultSnapshot(), type);
             } catch (JsonProcessingException e) {
                 logger.warn("Failed to parse result snapshot for run {}. Fallback to re-execute SQL.", runId, e);
-                data = reportService.runReport(report.getSql());
+                data = reportService.executeReportDefinition(report);
             }
         } else {
-            data = reportService.runReport(report.getSql());
+            data = reportService.executeReportDefinition(report);
         }
 
         Map<String, Object> meta = new HashMap<>();

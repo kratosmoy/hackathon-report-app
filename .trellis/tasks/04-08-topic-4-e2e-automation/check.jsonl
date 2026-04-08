@@ -1,0 +1,6 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check-backend/SKILL.md", "reason": "Backend check spec"}
+{"file": ".agents/skills/check-frontend/SKILL.md", "reason": "Frontend check spec"}
+{"file": "D:\\projects\\hackathon-report-app\\.trellis\\spec\\frontend\\quality-guidelines.md", "reason": "Validate that frontend changes preserve existing auth and workflow behavior."}
+{"file": "D:\\projects\\hackathon-report-app\\.trellis\\spec\\backend\\quality-guidelines.md", "reason": "Validate that backend-side test code stays layered and does not regress behavior."}
+{"file": "D:\\projects\\hackathon-report-app\\.trellis\\spec\\guides\\cross-layer-thinking-guide.md", "reason": "Verify selectors and happy-path assertions still match the frontend/backend contract."}

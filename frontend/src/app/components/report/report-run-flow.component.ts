@@ -8,81 +8,84 @@ import { ReportAuditEvent, ReportService } from '../../services/report.service';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="flow-container" *ngIf="!loading && !error">
-      <button class="back" (click)="goBack()">返回</button>
-      <h1>报表审批流程（Run #{{ runId }}）</h1>
+    <div class="flow-page">
+      <section class="flow-hero">
+        <div>
+          <p class="eyebrow">Audit Timeline</p>
+          <h1>报表审批流程 · Run #{{ runId }}</h1>
+          <p>从生成、提交到审批，所有关键审计事件都在同一条时间线上展示。</p>
+        </div>
 
-      <div *ngIf="events.length === 0">
-        <p>暂无审计记录。</p>
+        <div class="action-row">
+          <button class="btn btn-ghost" type="button" (click)="goBack()">返回工作台</button>
+        </div>
+      </section>
+
+      <div *ngIf="loading" class="workspace-card">
+        <div class="empty-state">
+          <h3>加载审批流程中</h3>
+          <p>正在同步这次运行的完整审计信息。</p>
+        </div>
       </div>
 
-      <ul class="timeline" *ngIf="events.length > 0">
-        <li *ngFor="let e of events">
-          <div class="time">{{ e.eventTime | date:'yyyy-MM-dd HH:mm:ss' }}</div>
-          <div class="content">
-            <div class="type">{{ e.eventType }}</div>
-            <div class="meta">
-              <span *ngIf="e.actorUsername">用户：{{ e.actorUsername }}</span>
-              <span *ngIf="e.actorRole">（角色：{{ e.actorRole }}）</span>
-            </div>
-            <div class="comment" *ngIf="e.comment">备注：{{ e.comment }}</div>
-          </div>
-        </li>
-      </ul>
-    </div>
+      <div *ngIf="error" class="banner banner--danger">{{ error }}</div>
 
-    <div *ngIf="loading">加载审批流程中...</div>
-    <div *ngIf="error" class="error">{{ error }}</div>
-  `,
-  styles: [`
-    .flow-container {
-      padding: 16px;
-    }
-    .back {
-      margin-bottom: 12px;
-    }
-    .timeline {
-      list-style: none;
-      padding-left: 0;
-      border-left: 2px solid #ddd;
-      margin-left: 8px;
-    }
-    .timeline li {
-      margin: 12px 0 12px 12px;
-      position: relative;
-    }
-    .timeline li::before {
-      content: '';
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #4CAF50;
-      position: absolute;
-      left: -16px;
-      top: 6px;
-    }
-    .time {
-      font-size: 12px;
-      color: #666;
-      margin-bottom: 4px;
-    }
-    .type {
-      font-weight: bold;
-    }
-    .meta {
-      font-size: 12px;
-      color: #555;
-    }
-    .comment {
-      margin-top: 4px;
-      font-size: 13px;
-    }
-    .error {
-      color: red;
-      padding: 10px;
-      background: #ffe6e6;
-    }
-  `]
+      <section *ngIf="!loading && !error" class="stack">
+        <div class="insight-grid insight-grid--compact">
+          <article class="insight-card">
+            <span class="insight-card__label">审计事件数</span>
+            <strong>{{ events.length }}</strong>
+            <p>完整记录本次运行的所有状态变化。</p>
+          </article>
+
+          <article class="insight-card">
+            <span class="insight-card__label">最新节点</span>
+            <strong>{{ events.length > 0 ? getEventLabel(events[0].eventType) : '暂无' }}</strong>
+            <p>帮助现场演示时快速说明当前阶段。</p>
+          </article>
+        </div>
+
+        <article class="workspace-card" *ngIf="events.length === 0">
+          <div class="empty-state">
+            <h3>暂无审计记录</h3>
+            <p>当前运行还没有可展示的流程事件。</p>
+          </div>
+        </article>
+
+        <article class="workspace-card" *ngIf="events.length > 0">
+          <div class="card-heading">
+            <h3>流程时间线</h3>
+            <span class="soft-tag">按时间倒序展示</span>
+          </div>
+
+          <ol class="timeline-list">
+            <li *ngFor="let event of events" class="timeline-item">
+              <div class="timeline-item__marker" [attr.data-tone]="getEventTone(event.eventType)"></div>
+              <div class="timeline-item__content">
+                <div class="timeline-item__header">
+                  <div>
+                    <p class="timeline-item__time">{{ event.eventTime | date:'yyyy-MM-dd HH:mm:ss' }}</p>
+                    <h3>{{ getEventLabel(event.eventType) }}</h3>
+                  </div>
+                  <span class="status-pill" [attr.data-tone]="getEventTone(event.eventType)">
+                    {{ event.eventType }}
+                  </span>
+                </div>
+
+                <div class="timeline-item__meta">
+                  <span>用户：{{ event.actorUsername || '-' }}</span>
+                  <span>角色：{{ event.actorRole || '-' }}</span>
+                  <span>报表 ID：{{ event.reportId }}</span>
+                </div>
+
+                <p *ngIf="event.comment" class="timeline-item__comment">备注：{{ event.comment }}</p>
+              </div>
+            </li>
+          </ol>
+        </article>
+      </section>
+    </div>
+  `
 })
 export class ReportRunFlowComponent implements OnInit {
   runId!: number;
@@ -111,7 +114,9 @@ export class ReportRunFlowComponent implements OnInit {
     this.error = null;
     this.reportService.getAuditTrail(this.runId).subscribe({
       next: (events) => {
-        this.events = events;
+        this.events = [...events].sort(
+          (left, right) => new Date(right.eventTime).getTime() - new Date(left.eventTime).getTime()
+        );
         this.loading = false;
       },
       error: (err) => {
@@ -119,6 +124,36 @@ export class ReportRunFlowComponent implements OnInit {
         this.loading = false;
       }
     });
+  }
+
+  getEventLabel(eventType: string): string {
+    switch (eventType) {
+      case 'RUN_GENERATED':
+        return '报表已生成';
+      case 'RUN_SUBMITTED':
+        return '已提交审批';
+      case 'RUN_APPROVED':
+        return '审批已通过';
+      case 'RUN_REJECTED':
+        return '审批已驳回';
+      default:
+        return eventType;
+    }
+  }
+
+  getEventTone(eventType: string): 'generated' | 'submitted' | 'approved' | 'rejected' | 'neutral' {
+    switch (eventType) {
+      case 'RUN_GENERATED':
+        return 'generated';
+      case 'RUN_SUBMITTED':
+        return 'submitted';
+      case 'RUN_APPROVED':
+        return 'approved';
+      case 'RUN_REJECTED':
+        return 'rejected';
+      default:
+        return 'neutral';
+    }
   }
 
   goBack(): void {

@@ -163,6 +163,9 @@ public
 tmp/
 temp/
 
+# Local git worktrees
+.worktrees/
+
 # Logs
 logs
 *.log

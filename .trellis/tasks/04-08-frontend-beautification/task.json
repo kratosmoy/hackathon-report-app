@@ -1,0 +1,50 @@
+{
+  "id": "04-08-frontend-beautification",
+  "name": "Frontend Beautification",
+  "description": "Improve the visual quality and interaction polish of the key Angular flows",
+  "status": "pending",
+  "dev_type": "frontend",
+  "priority": "P1",
+  "creator": "kratos",
+  "assignee": "kratos",
+  "createdAt": "2026-04-08",
+  "completedAt": null,
+  "commit": null,
+  "subtasks": [
+    {
+      "name": "Audit current frontend UX",
+      "status": "pending"
+    },
+    {
+      "name": "Define lightweight visual system",
+      "status": "pending"
+    },
+    {
+      "name": "Redesign key screens",
+      "status": "pending"
+    },
+    {
+      "name": "Polish interaction details",
+      "status": "pending"
+    },
+    {
+      "name": "Capture frontend showcase assets",
+      "status": "pending"
+    }
+  ],
+  "children": [],
+  "parent": "04-08-topic-1-hackathon",
+  "relatedFiles": [
+    "frontend/src/app/components/",
+    "frontend/src/app/services/",
+    ".trellis/spec/frontend/"
+  ],
+  "notes": "This workstream should prioritize hackathon-visible improvements over full UI standardization.",
+  "meta": {
+    "workstream": "frontend",
+    "dependsOn": [
+      "04-08-backend-sql-migration"
+    ],
+    "showcasePriority": "high"
+  }
+}

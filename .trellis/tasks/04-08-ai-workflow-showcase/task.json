@@ -1,0 +1,48 @@
+{
+  "id": "04-08-ai-workflow-showcase",
+  "name": "AI Workflow Showcase",
+  "description": "Prepare artifacts that show how AI and Trellis supported Topic 1 delivery",
+  "status": "pending",
+  "dev_type": "docs",
+  "priority": "P2",
+  "creator": "kratos",
+  "assignee": "kratos",
+  "createdAt": "2026-04-08",
+  "completedAt": null,
+  "commit": null,
+  "subtasks": [
+    {
+      "name": "Capture baseline problem statement",
+      "status": "pending"
+    },
+    {
+      "name": "Capture planning trail",
+      "status": "pending"
+    },
+    {
+      "name": "Capture implementation story",
+      "status": "pending"
+    },
+    {
+      "name": "Prepare demo assets",
+      "status": "pending"
+    }
+  ],
+  "children": [],
+  "parent": "04-08-topic-1-hackathon",
+  "relatedFiles": [
+    "README.md",
+    ".trellis/tasks/",
+    ".trellis/spec/",
+    "AGENTS.md"
+  ],
+  "notes": "This workstream exists to support the demo story, not to maximize internal process documentation.",
+  "meta": {
+    "workstream": "workflow",
+    "dependsOn": [
+      "04-08-frontend-beautification",
+      "04-08-backend-sql-migration"
+    ],
+    "showcasePriority": "medium"
+  }
+}

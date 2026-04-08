@@ -1,0 +1,51 @@
+{
+  "id": "04-08-backend-sql-migration",
+  "name": "Backend SQL Migration",
+  "description": "Extract representative report business logic from SQL-heavy paths into Java",
+  "status": "pending",
+  "dev_type": "backend",
+  "priority": "P1",
+  "creator": "kratos",
+  "assignee": "kratos",
+  "createdAt": "2026-04-08",
+  "completedAt": null,
+  "commit": null,
+  "subtasks": [
+    {
+      "name": "Inventory current SQL-heavy logic",
+      "status": "pending"
+    },
+    {
+      "name": "Define migration strategy",
+      "status": "pending"
+    },
+    {
+      "name": "Build backend refactor skeleton",
+      "status": "pending"
+    },
+    {
+      "name": "Migrate first showcase report",
+      "status": "pending"
+    },
+    {
+      "name": "Validate workflow safety",
+      "status": "pending"
+    }
+  ],
+  "children": [],
+  "parent": "04-08-topic-1-hackathon",
+  "relatedFiles": [
+    "backend/src/main/java/com/legacy/report/service/",
+    "backend/src/main/java/com/legacy/report/dao/",
+    "backend/src/main/resources/data.sql",
+    ".trellis/spec/backend/"
+  ],
+  "notes": "This workstream should produce a strong representative migration story rather than a full rewrite of every report.",
+  "meta": {
+    "workstream": "backend",
+    "blocks": [
+      "04-08-frontend-beautification"
+    ],
+    "showcasePriority": "high"
+  }
+}

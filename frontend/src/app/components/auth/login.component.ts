@@ -4,75 +4,41 @@ import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 
+interface DemoAccount {
+  username: string;
+  password: string;
+  roleLabel: string;
+  description: string;
+}
+
 @Component({
   selector: 'app-login',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  template: `
-    <div class="login-container">
-      <h1>报表管理系统登录</h1>
-
-      <div *ngIf="authService.isLoggedIn(); else loginForm">
-        <p>当前已登录用户：{{ authService.getCurrentUser()?.username }}</p>
-        <button (click)="goAfterLogin()">进入系统</button>
-      </div>
-
-      <ng-template #loginForm>
-        <form (ngSubmit)="onSubmit()" class="login-form">
-          <label>
-            用户名：
-            <input [(ngModel)]="username" name="username" required />
-          </label>
-
-          <label>
-            密码：
-            <input type="password" [(ngModel)]="password" name="password" required />
-          </label>
-
-          <button type="submit" [disabled]="loggingIn">登录</button>
-
-          <div *ngIf="loginError" class="error">{{ loginError }}</div>
-        </form>
-      </ng-template>
-    </div>
-  `,
-  styles: [`
-    .login-container {
-      max-width: 400px;
-      margin: 80px auto;
-      padding: 24px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-    .login-form label {
-      display: block;
-      margin: 12px 0;
-    }
-    .login-form input {
-      width: 100%;
-      padding: 8px;
-      box-sizing: border-box;
-    }
-    button {
-      padding: 8px 16px;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      cursor: pointer;
-      margin-top: 8px;
-    }
-    button[disabled] {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-    .error {
-      color: red;
-      margin-top: 8px;
-    }
-  `]
+  templateUrl: './login.component.html'
 })
 export class LoginComponent implements OnInit {
+  readonly demoAccounts: DemoAccount[] = [
+    {
+      username: 'admin',
+      password: '123456',
+      roleLabel: 'MAKER + CHECKER',
+      description: '适合完整演示执行、提交、审批、导出全链路。'
+    },
+    {
+      username: 'maker1',
+      password: '123456',
+      roleLabel: 'MAKER',
+      description: '专注报表执行、提交审批与历史追踪。'
+    },
+    {
+      username: 'checker1',
+      password: '123456',
+      roleLabel: 'CHECKER',
+      description: '专注待办审批、审计时间线与历史记录。'
+    }
+  ];
+
   username = '';
   password = '';
   loggingIn = false;
@@ -87,6 +53,12 @@ export class LoginComponent implements OnInit {
 
   ngOnInit(): void {
     this.redirectUrl = this.route.snapshot.queryParamMap.get('redirect');
+  }
+
+  useDemoAccount(account: DemoAccount): void {
+    this.username = account.username;
+    this.password = account.password;
+    this.loginError = null;
   }
 
   onSubmit(): void {
@@ -106,6 +78,14 @@ export class LoginComponent implements OnInit {
         this.loginError = '登录失败: ' + (err.error?.message || err.message || '');
       }
     });
+  }
+
+  switchAccount(): void {
+    this.authService.logout();
+    this.username = '';
+    this.password = '';
+    this.loginError = null;
+    this.loggingIn = false;
   }
 
   goAfterLogin(): void {
